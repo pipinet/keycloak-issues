@@ -1,5 +1,5 @@
 ### STEPS
-- setup domain to local  in /etc/hosts
+- setup domain keycloak.banshan.ren to local  in /etc/hosts
 
 - start keycloak with command
 ```shell
