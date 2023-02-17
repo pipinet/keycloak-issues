@@ -1,0 +1,65 @@
+version: "3.8"
+services:
+  keycloak-db:
+    image: postgres:14.7-alpine
+    container_name: iam-keycloak-postgres
+    restart: always
+    hostname: iam-keycloak-postgres
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD:
+        POSTGRES_DB: keycloak
+        POSTGRES_HOST_AUTH_METHOD: trust
+        PGDATA: '/var/lib/postgresql/data'
+    ports:
+        - 15432:5432
+    command: ["postgres", "-c", "log_statement=all", "-c", "max_connections=500", "-c", "log_destination=stderr", "-c", "wal_level=logical", "-c", "max_wal_senders=100", "-c", "max_replication_slots=100"]
+    volumes:
+        - iam-keycloak-postgres:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+  keycloak:
+    image: quay.io/keycloak/keycloak:20.0.3-0
+    container_name: iam-keycloak
+    command: ["start", "--auto-build"]
+    restart: always
+    hostname: iam-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: iam-keycloak-postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ''
+      KC_HOSTNAME_STRICT_HTTPS: 'true'
+      KC_HOSTNAME: keycloak.banshan.ren
+      KC_PROXY: edge
+      PROXY_ADDRESS_FORWARDING: 'true'
+      KC_FEATURES: docker, admin2
+    depends_on:
+      - keycloak-db
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 512M
+  nginx:
+    image: nginx:1.23.3-alpine
+    container_name: iam-nginx
+    depends_on:
+      - keycloak
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./keycloak.conf:/etc/nginx/conf.d/keycloak.conf
+      - ./cert:/etc/nginx/cert
+
+volumes:
+  iam-keycloak-postgres:
