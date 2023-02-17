@@ -1,4 +1,5 @@
 ### STEPS
+- setup domain to local  in /etc/hosts
 
 - start keycloak with command
 ```shell
